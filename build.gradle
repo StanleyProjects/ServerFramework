@@ -1,0 +1,13 @@
+allprojects {
+  repositories {
+    jcenter()
+  }
+}
+
+allprojects {
+  ext {
+    applicationId = 'stan.server'
+    versionCode = 1708172237
+    versionName = "0.00.01"
+  }
+}
