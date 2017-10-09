@@ -7,7 +7,7 @@ allprojects {
 allprojects {
   ext {
     applicationId = 'stan.server'
-    versionCode = 1708172237
-    versionName = "0.00.01"
+    versionCode = 1710091619
+    versionName = "0.00.02"
   }
 }

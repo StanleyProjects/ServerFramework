@@ -5,6 +5,14 @@ import java.util.Map;
 
 public final class Connection
 {
+    static public Response responseText(int code, String text)
+    {
+        return response(code, text, content(Content.Type.TEXT, text.length()));
+    }
+    static public Response responseJson(int code, String json)
+    {
+        return response(code, json, content(Content.Type.JSON, json.length()));
+    }
     static public Response response(int code, Content content)
     {
         return response(code, "", content);
@@ -51,6 +59,18 @@ public final class Connection
     {
         return new ContentData(type, length);
     }
+    static public Content.Type parse(String value)
+    {
+        if(Content.Type.JSON.isIt(value))
+        {
+            return Content.Type.JSON;
+        }
+        else if(Content.Type.TEXT.isIt(value))
+        {
+            return Content.Type.TEXT;
+        }
+        return Content.Type.UNKNOWN;
+    }
 
     private Connection()
     {
@@ -94,6 +114,11 @@ public final class Connection
         public Content content()
         {
             return content;
+        }
+
+        public String toString()
+        {
+            return "{"+code+","+(body != null && !body.isEmpty() ? ","+body+"," : ",")+content+","+headers+"}";
         }
     }
 
@@ -145,6 +170,11 @@ public final class Connection
         public Content content() {
             return content;
         }
+
+        public String toString()
+        {
+            return "{"+type.name()+","+query+(body != null && !body.isEmpty() ? ","+body+"," : ",")+content+","+headers+"}";
+        }
     }
 
     public interface Content
@@ -167,6 +197,11 @@ public final class Connection
             {
                 value = v;
             }
+
+            public boolean isIt(String v)
+            {
+                return value.equals(v);
+            }
         }
     }
     static private class ContentData
@@ -188,6 +223,11 @@ public final class Connection
         public int length()
         {
             return length;
+        }
+
+        public String toString()
+        {
+            return "{"+type.name()+","+length+"}";
         }
     }
 }

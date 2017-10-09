@@ -13,34 +13,45 @@ public class Handler
 {
     private final Socket socket;
     private final Worker worker;
+    private final Corrector corrector;
 
-    Handler(Socket s, Worker w)
+    Handler(Socket s, Worker w, Corrector c)
     {
         socket = s;
         worker = w;
+        corrector = c;
     }
 
     public void run()
     {
+        Connection.Response response;
         try
         {
-            send(socket, worker.work(request(socket)));
+            response = worker.work(request(socket));
+        }
+        catch(IOException e)
+        {
+            response = corrector.error(e);
+        }
+        catch(EmptyRequestException e)
+        {
+            response = corrector.error(e);
+        }
+        catch(UnknownRequestTypeException e)
+        {
+            response = corrector.error(e);
+        }
+        catch(UnknownRequestQueryException e)
+        {
+            response = corrector.error(e);
+        }
+        try
+        {
+            send(socket, response);
         }
         catch(IOException e)
         {
             throw new RuntimeException(e);
-        }
-        catch(EmptyRequestException e)
-        {
-            System.out.println("empty request");
-        }
-        catch(UnknownRequestTypeException e)
-        {
-            System.out.println("empty request");
-        }
-        catch(UnknownRequestQueryException e)
-        {
-            System.out.println("empty request");
         }
         try
         {
@@ -132,14 +143,7 @@ public class Handler
         Connection.Content.Type contentType;
         if(contentTypeValue != null)
         {
-            try
-            {
-                contentType = Connection.Content.Type.valueOf(contentTypeValue);
-            }
-            catch(IllegalArgumentException e)
-            {
-                contentType = Connection.Content.Type.UNKNOWN;
-            }
+            contentType = Connection.parse(contentTypeValue);
         }
         else
         {
@@ -152,7 +156,7 @@ public class Handler
     private void send(Socket socket, Connection.Response response)
             throws IOException
     {
-        String data = "HTTP/1.1 "+response.code()+" none\r\n";
+        String data = "HTTP/1.1 "+response.code()+" " + codeDescription(response.code()) + "\r\n";
         data += Connection.Content.contentTypeHeaderName + ": " + response.content().type().value + "\r\n";
         data += Connection.Content.contentLengthHeaderName + ": " + response.content().length() + "\r\n";
         data += "\r\n";
@@ -160,10 +164,33 @@ public class Handler
         outputStream.write((data + response.body()).getBytes());
         outputStream.flush();
     }
+    private String codeDescription(int code)
+    {
+        switch(code)
+        {
+            case 200:
+                return "Success";
+            case 400:
+                return "Bad Request";
+            case 401:
+                return "Unauthorized";
+            case 403:
+                return "Forbidden";
+            case 404:
+                return "Not Found";
+            case 500:
+                return "Internal Server Error";
+        }
+        return "Unknown";
+    }
 
     public interface Worker
     {
         Connection.Response work(Connection.Request request);
+    }
+    public interface Corrector
+    {
+        Connection.Response error(Exception e);
     }
 
     private class EmptyRequestException

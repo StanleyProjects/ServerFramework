@@ -8,16 +8,27 @@ import java.util.Map;
 
 public class Server
 {
-    static private Map<Integer, Server> servers = new HashMap<Integer, Server>();
+    static private final Handler.Corrector defaultCorrector = new Handler.Corrector()
+    {
+        public Connection.Response error(Exception e)
+        {
+            return Connection.responseText(500, "error: " + e.getMessage());
+        }
+    };
+    static private final Map<Integer, Server> servers = new HashMap<Integer, Server>();
 
     static public void start(int port, Handler.Worker worker)
+    {
+        start(port, worker, defaultCorrector);
+    }
+    static public void start(int port, Handler.Worker worker, Handler.Corrector corrector)
     {
         Server server = servers.get(port);
         if(server != null)
         {
             return;
         }
-        server = new Server(port, worker);
+        server = new Server(port, worker, corrector);
         servers.put(port, server);
         server.run();
     }
@@ -34,10 +45,12 @@ public class Server
 
     private final ServerSocket serverSocket;
     private final Handler.Worker worker;
+    private final Handler.Corrector corrector;
 
-    private Server(int port, Handler.Worker w)
+    private Server(int port, Handler.Worker w, Handler.Corrector c)
     {
         worker = w;
+        corrector = c;
         try
         {
             serverSocket = new ServerSocket(port);
@@ -53,7 +66,7 @@ public class Server
         System.out.println("Server started " + serverSocket.getLocalPort());
         while(true)
         {
-            new Thread(new Handler(accept(serverSocket), worker)).start();
+            new Thread(new Handler(accept(serverSocket), worker, corrector)).start();
         }
     }
     private void close()
